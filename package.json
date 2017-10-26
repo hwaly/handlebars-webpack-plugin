@@ -1,0 +1,25 @@
+{
+  "name": "handlebars-webpack-plugin",
+  "version": "0.1.0",
+  "description": "handlebars를 html로 변환하는 webpack용 플러그인",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "webpack",
+    "handlebars"
+  ],
+  "author": "연병화",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hwaly/handlebars-webpack-plugin.git"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^2.3.0",
+    "fs-extra": "^4.0.2",
+    "glob": "^7.1.2",
+    "handlebars": "^4.0.11"
+  }
+}
