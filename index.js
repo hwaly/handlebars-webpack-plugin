@@ -142,7 +142,6 @@ class HandlebarsPlugin {
 
         compiler.plugin("emit", (compilation, done) => {
             compilation.fileDependencies = compilation.fileDependencies.concat(this.fileDependencies);
-            this.emitGeneratedFiles(compilation);
             done();
         });
     }
@@ -168,31 +167,9 @@ class HandlebarsPlugin {
             this.fileDependencies.push(filePath);
 
             fs.outputFileSync(outputFilepath, result, 'utf-8');
-
-            this.registerGeneratedFile(outputFilepath, result);
         });
 
         done();
-    }
-
-
-
-
-
-
-    addDependency(...args) {
-        this.fileDependencies.push.apply(this.fileDependencies, args.filter((filename) => filename));
-    }
-    registerGeneratedFile(filepath, content) {
-        this.assetsToEmit[path.basename(filepath)] = {
-            source: () => content,
-            size: () => content.length
-        };
-    }
-    emitGeneratedFiles(compilation) {
-        Object.keys(this.assetsToEmit).forEach((filename) => {
-            compilation.assets[filename] = this.assetsToEmit[filename];
-        });
     }
 }
 
