@@ -141,7 +141,13 @@ class HandlebarsPlugin {
         });
 
         compiler.plugin("emit", (compilation, done) => {
-            compilation.fileDependencies = this.entries.map(entry => path.normalize(entry));
+            this.entries.forEach((entry) => {
+                    const entryPath = path.normalize(entry);
+
+                if (! compilation.fileDependencies.includes(entryPath)) {
+                    compilation.fileDependencies.push(entryPath);
+                }
+            });
 
             done();
         });
