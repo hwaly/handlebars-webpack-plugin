@@ -141,7 +141,8 @@ class HandlebarsPlugin {
         });
 
         compiler.plugin("emit", (compilation, done) => {
-            compilation.fileDependencies = compilation.fileDependencies.concat(this.fileDependencies);
+            compilation.fileDependencies = this.entries.map(entry => path.normalize(entry));
+
             done();
         });
     }
@@ -163,8 +164,6 @@ class HandlebarsPlugin {
             }
 
             const result = template(this.data);
-
-            this.fileDependencies.push(filePath);
 
             fs.outputFileSync(outputFilepath, result, 'utf-8');
         });

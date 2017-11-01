@@ -1,6 +1,6 @@
 {
   "name": "handlebars-webpack-plugin",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "handlebars를 html로 변환하는 webpack용 플러그인",
   "main": "index.js",
   "scripts": {
