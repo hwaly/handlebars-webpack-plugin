@@ -1,20 +1,17 @@
-const path = require("path");
-const glob = require("glob");
-const fs = require("fs-extra");
-const chalk = require("chalk");
-const Handlebars = require("handlebars");
-
+const path = require('path');
+const glob = require('glob');
+const fs = require('fs-extra');
+const chalk = require('chalk');
+const Handlebars = require('handlebars');
 
 /**
  *
  * @param {mixed} args
  */
 const log = (...args) => {
-    args.unshift(chalk.gray("HandlebarsPlugin: "));
+    args.unshift(chalk.gray('HandlebarsPlugin: '));
     console.log.apply(console, args);
 };
-
-
 
 class HandlebarsPlugin {
     constructor(options) {
@@ -50,15 +47,15 @@ class HandlebarsPlugin {
     buildEntryOutput() {
         this.options.entryOutput.forEach((filesPath) => {
             const entryFiles = this.files(path.resolve(this.root, filesPath[0]));
-        const outputFiles = entryFiles.map(file => {
-            const entryFileName = path.basename(file.replace(this.root, '')).replace(path.extname(file), '');
+            const outputFiles = entryFiles.map(file => {
+                const entryFileName = path.basename(file.replace(this.root, '')).replace(path.extname(file), '');
 
-        return path.resolve(this.outputRoot, filesPath[1].replace("[name]", entryFileName));
-    });
+                return path.resolve(this.outputRoot, filesPath[1].replace('[name]', entryFileName));
+            });
 
-        this.entries = this.entries.concat(entryFiles);
-        this.outputs = this.outputs.concat(outputFiles);
-    });
+            this.entries = this.entries.concat(entryFiles);
+            this.outputs = this.outputs.concat(outputFiles);
+        });
 
         return this;
     }
@@ -69,7 +66,6 @@ class HandlebarsPlugin {
         return this;
     }
 
-
     /**
      * helpers와 partials에 사용되는 아이디 생성
      *
@@ -79,13 +75,12 @@ class HandlebarsPlugin {
      */
     getId(type, path) {
         const id = {
-                helpers: path => this.dashToUpper(path.match(/\/([^/]*).js$/).pop()),
+            helpers: path => this.dashToUpper(path.match(/\/([^/]*).js$/).pop()),
             partials: path => path.match(/\/([^/]+\/[^/]+)\.[^.]+$/).pop()
-    };
+        };
 
         return id[type](path);
     }
-
 
     /**
      * glob 패턴 파일들
@@ -96,7 +91,6 @@ class HandlebarsPlugin {
     files(globPath) {
         return [].concat(glob.sync(globPath));
     }
-
 
     /**
      * 파일 내용 가져오기
@@ -130,30 +124,29 @@ class HandlebarsPlugin {
         return this;
     }
 
-
     /**
      * 웹팩 플러그인 훅
      *
      * @param {compiler} compiler
      */
     apply(compiler) {
-        compiler.plugin("make", (compilation, done) => {
+        compiler.plugin('make', (compilation, done) => {
             console.log('\n');
-        this.register('partials');
-        this.compileAllFile(done);
-    });
+            this.register('partials');
+            this.compileAllFile(done);
+        });
 
-        compiler.plugin("emit", (compilation, done) => {
+        compiler.plugin('emit', (compilation, done) => {
             this.fileDependencies.forEach((fileDependency) => {
-            const fileDependencyPath = path.normalize(fileDependency);
+                const fileDependencyPath = path.normalize(fileDependency);
 
-        if (!compilation.fileDependencies.includes(fileDependencyPath)) {
-            compilation.fileDependencies.push(fileDependencyPath);
-        }
-    });
+                if (!compilation.fileDependencies.includes(fileDependencyPath)) {
+                    compilation.fileDependencies.push(fileDependencyPath);
+                }
+            });
 
-        done();
-    });
+            done();
+        });
     }
 
     /**
@@ -166,7 +159,6 @@ class HandlebarsPlugin {
 
         done();
     }
-
 
     /**
      * 파일 생성
