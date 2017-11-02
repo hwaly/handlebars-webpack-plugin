@@ -10,7 +10,7 @@ const Handlebars = require("handlebars");
  * @param {mixed} args
  */
 const log = (...args) => {
-    args.unshift(chalk.gray("HandlebarsPlugin:"));
+    args.unshift(chalk.gray("HandlebarsPlugin: "));
     console.log.apply(console, args);
 };
 
@@ -28,6 +28,7 @@ class HandlebarsPlugin {
         this.entries = [];
         this.outputs = [];
         this.data = {};
+        this.fileDependencies = [];
 
         this.options = {
             entryOutput: options.entryOutput,
@@ -36,9 +37,6 @@ class HandlebarsPlugin {
             helpers: path.resolve(this.root, '_helpers/**/*.js')
         };
 
-        this.fileDependencies = [];
-        this.assetsToEmit = {};
-
         this.build();
     }
 
@@ -46,22 +44,21 @@ class HandlebarsPlugin {
         this
             .buildEntryOutput()
             .register('helpers')
-            .register('partials')
             .updateData()
     }
 
     buildEntryOutput() {
         this.options.entryOutput.forEach((filesPath) => {
             const entryFiles = this.files(path.resolve(this.root, filesPath[0]));
-            const outputFiles = entryFiles.map(file => {
-                const entryFileName = path.basename(file.replace(this.root, '')).replace(path.extname(file), '');
+        const outputFiles = entryFiles.map(file => {
+            const entryFileName = path.basename(file.replace(this.root, '')).replace(path.extname(file), '');
 
-                return path.resolve(this.outputRoot, filesPath[1].replace("[name]", entryFileName));
-            });
+        return path.resolve(this.outputRoot, filesPath[1].replace("[name]", entryFileName));
+    });
 
-            this.entries = this.entries.concat(entryFiles);
-            this.outputs = this.outputs.concat(outputFiles);
-        });
+        this.entries = this.entries.concat(entryFiles);
+        this.outputs = this.outputs.concat(outputFiles);
+    });
 
         return this;
     }
@@ -82,9 +79,9 @@ class HandlebarsPlugin {
      */
     getId(type, path) {
         const id = {
-            helpers: path => this.dashToUpper(path.match(/\/([^/]*).js$/).pop()),
+                helpers: path => this.dashToUpper(path.match(/\/([^/]*).js$/).pop()),
             partials: path => path.match(/\/([^/]+\/[^/]+)\.[^.]+$/).pop()
-        };
+    };
 
         return id[type](path);
     }
@@ -107,6 +104,8 @@ class HandlebarsPlugin {
      * @param {string} filePath
      */
     read(filePath) {
+        this.fileDependencies.push(filePath);
+
         return fs.readFileSync(filePath, 'utf8');
     }
 
@@ -131,50 +130,64 @@ class HandlebarsPlugin {
         return this;
     }
 
+
     /**
+     * 웹팩 플러그인 훅
      *
-     * @param compiler
+     * @param {compiler} compiler
      */
     apply(compiler) {
         compiler.plugin("make", (compilation, done) => {
-            this.compileAllFile(done);
-        });
+            console.log('\n');
+        this.register('partials');
+        this.compileAllFile(done);
+    });
 
         compiler.plugin("emit", (compilation, done) => {
-            this.entries.forEach((entry) => {
-                    const entryPath = path.normalize(entry);
+            this.fileDependencies.forEach((fileDependency) => {
+            const fileDependencyPath = path.normalize(fileDependency);
 
-                if (! compilation.fileDependencies.includes(entryPath)) {
-                    compilation.fileDependencies.push(entryPath);
-                }
-            });
+        if (!compilation.fileDependencies.includes(fileDependencyPath)) {
+            compilation.fileDependencies.push(fileDependencyPath);
+        }
+    });
 
-            done();
-        });
+        done();
+    });
     }
 
     /**
-     * 파일 생성
+     * 전체 파일 생성
      *
      * @param done
      */
     compileAllFile(done) {
-        this.entries.forEach((filePath, idx) => {
-            const outputFilepath = this.outputs[idx];
-            const templateContent = this.read(filePath);
-            const templateContentData = path.resolve(this.root, '_data', path.relative(this.root, filePath).replace('.hbs', '.js'));
-            const template = Handlebars.compile(templateContent);
-
-            if (fs.existsSync(templateContentData)) {
-                Object.assign(this.data, require(templateContentData));
-            }
-
-            const result = template(this.data);
-
-            fs.outputFileSync(outputFilepath, result, 'utf-8');
-        });
+        this.entries.forEach((entry, idx) => this.compileFile(entry, this.outputs[idx]));
 
         done();
+    }
+
+
+    /**
+     * 파일 생성
+     *
+     * @param {string} entry
+     * @param {string} output
+     */
+    compileFile(entry, output) {
+        const templateContent = this.read(entry);
+        const templateContentData = path.resolve(this.root, '_data', path.relative(this.root, entry).replace('.hbs', '.js'));
+        const template = Handlebars.compile(templateContent);
+
+        if (fs.existsSync(templateContentData)) {
+            Object.assign(this.data, require(templateContentData));
+        }
+
+        const result = template(this.data);
+
+        fs.outputFileSync(output, result, 'utf-8');
+
+        log(chalk.magenta('파일 생성'), chalk.cyan(`'${output.replace(`${this.outputRoot}/`, '')}'`));
     }
 }
 
