@@ -119,7 +119,7 @@ class HandlebarsPlugin {
      */
     register(type) {
         this.files(this.options[type])
-            .forEach(path => Handlebars[this.dashToUpper(`register-${type.replace(/s$/, '')}`)](this.getId(type, path), this.read(path)));
+            .forEach(path => Handlebars[this.dashToUpper(`register-${type.replace(/s$/, '')}`)](this.getId(type, path), (type == 'partials' ? this.read(path) : require(path))));
 
         return this;
     }
