@@ -1,2 +1,16 @@
+.DS_Store
+Thumbs.db
+.vscode
+*.sublime-project
+*.sublime-workspace
+npm-debug.log*
+package-lock.json
+webpack.config.js
+
 .idea/
 node_modules/
+
+
+assets/css/*
+assets/js/*
+*.html

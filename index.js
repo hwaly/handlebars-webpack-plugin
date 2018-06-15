@@ -1,7 +1,7 @@
 const path = require('path');
+const chalk = require('chalk');
 const glob = require('glob');
 const fs = require('fs-extra');
-const chalk = require('chalk');
 const Handlebars = require('handlebars');
 
 /**
@@ -13,28 +13,47 @@ const log = (...args) => {
     console.log.apply(console, args);
 };
 
+
+
 class HandlebarsPlugin {
-    constructor(options) {
-        if (!options.entryOutput) {
-            log(chalk.red('"entryOutput"을 지정해주세요.'));
-            return;
+    constructor(options = {root: '../../handlebars', outputRoot: '../../../'}) {
+        this.isValid({type: 'emptyEntryOutput', value: options.entryOutput});
+        this.isValid({type: 'ckeckEntryOutput', value: options.entryOutput});
+
+
+
+
+        // if (!options.entryOutput) {
+        //     throw log(chalk.red('"entryOutput"을 지정해주세요.'));
+        // }
+        //
+        // this.root = path.resolve(__dirname, options.root);
+        // this.outputRoot = path.resolve(__dirname, options.outputRoot);
+        // this.entries = [];
+        // this.outputs = [];
+        // this.data = {};
+        // this.fileDependencies = [];
+        //
+        // this.options = {
+        //     entryOutput: options.entryOutput,
+        //     data: path.resolve(this.root, '_data/_config.js'),
+        //     partials: path.resolve(this.root, '_partials/**/*.hbs'),
+        //     helpers: path.resolve(this.root, '_helpers/**/*.js')
+        // };
+        //
+        // Object.assign(this.options, options);
+        //
+        // this.build();
+    }
+
+    isValid({type, value}) {
+        switch (type) {
+            case 'emptyEntryOutput':
+                if (!value) {
+                    return log(chalk.red('"entryOutput"을 지정해주세요.'));
+                }
         }
 
-        this.root = path.resolve(__dirname, (options.root ? options.root : '../../handlebars'));
-        this.outputRoot = path.resolve(__dirname, (options.outputRoot ? options.outputRoot : '../../../'));
-        this.entries = [];
-        this.outputs = [];
-        this.data = {};
-        this.fileDependencies = [];
-
-        this.options = {
-            entryOutput: options.entryOutput,
-            data: path.resolve(this.root, '_data/_config.js'),
-            partials: path.resolve(this.root, '_partials/**/*.hbs'),
-            helpers: path.resolve(this.root, '_helpers/**/*.js')
-        };
-
-        this.build();
     }
 
     build() {
