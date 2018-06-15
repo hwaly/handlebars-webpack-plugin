@@ -1,5 +1,5 @@
 {
-  "name": "handlebars-webpack-plugin",
+  "name": "@hawly/handlebars-webpack-plugin",
   "version": "0.1.3",
   "description": "handlebars를 html로 변환하는 webpack용 플러그인",
   "main": "index.js",

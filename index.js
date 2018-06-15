@@ -16,9 +16,15 @@ const log = (...args) => {
 
 
 class HandlebarsPlugin {
-    constructor(options = {root: '../../handlebars', outputRoot: '../../../'}) {
-        this.isValid({type: 'emptyEntryOutput', value: options.entryOutput});
-        this.isValid({type: 'ckeckEntryOutput', value: options.entryOutput});
+    constructor(options) {
+        this.options = Object.assign({
+            pathEntry: path.join(__dirname, '../../handlebars'),
+            pathOutput: path.join(__dirname, '../../../')
+        }, options);
+
+
+        //this.isValid({type: 'emptyEntryOutput', value: options.entryOutput});
+        //this.isValid({type: 'ckeckEntryOutput', value: options.entryOutput});
 
 
 
@@ -46,14 +52,22 @@ class HandlebarsPlugin {
         // this.build();
     }
 
-    isValid({type, value}) {
+    isValid(type) {
         switch (type) {
             case 'emptyEntryOutput':
-                if (!value) {
+                if (!this.options.entryOutput || !this.options.entryOutput.length) {
                     return log(chalk.red('"entryOutput"을 지정해주세요.'));
                 }
-        }
 
+            case 'checkEntryOutput':
+                if (!Array.isArray(this.options.entryOutput)) {
+                    return log(chalk.red('"entryOutput"는 배열로 이루어져 있어야 합니다.'));
+                }
+
+                if (this.options.entryOutput.some(item => !(item.entry && item.output))) {
+                    return log(chalk.red('"entryOutput" 안의  {entry: 경로, output: 경로}" 확인해주세요.'));
+                }
+        }
     }
 
     build() {
@@ -64,17 +78,25 @@ class HandlebarsPlugin {
     }
 
     buildEntryOutput() {
-        this.options.entryOutput.forEach((filesPath) => {
-            const entryFiles = this.files(path.resolve(this.root, filesPath[0]));
-            const outputFiles = entryFiles.map(file => {
-                const entryFileName = path.basename(file.replace(this.root, '')).replace(path.extname(file), '');
+        isValid('emptyEntryOutput');
+        isValid('checkEntryOutput');
 
-                return path.resolve(this.outputRoot, filesPath[1].replace('[name]', entryFileName));
+        const options = this.options;
+        const entryOutput = options.entryOutput.reduce((eachItems, filesPath) => {
+            const pathEntry = options.pathEntry;
+            const entryFiles = this.files(path.resolve(pathEntry, filesPath.entry));
+
+            const outputFiles = entryFiles.map(file => {
+                const entryFileName = path.basename(file.replace(pathEntry, '')).replace(path.extname(file), '');
+
+                return path.resolve(options.pathOutput, filesPath.output.replace('[name]', entryFileName));
             });
 
-            this.entries = this.entries.concat(entryFiles);
-            this.outputs = this.outputs.concat(outputFiles);
-        });
+            eachItems.entries = eachItems.entries.concat(entryFiles);
+            eachItems.outputs = eachItems.outputs.concat(outputFiles);
+        }, {entries: [], outputs: []});
+
+        Object.assign(options, entryOutput);
 
         return this;
     }
