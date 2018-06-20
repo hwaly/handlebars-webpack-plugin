@@ -13,20 +13,20 @@ const log = (...args) => {
     console.log.apply(console, args);
 };
 
+const err = (...args) => {
+    args.unshift(chalk.gray('HandlebarsPlugin: '));
+    throw (args ? args.join('') : '에러');
+};
+
 
 
 class HandlebarsPlugin {
-    constructor(options) {
-        this.options = Object.assign({
-            pathEntry: path.join(__dirname, '../../handlebars'),
-            pathOutput: path.join(__dirname, '../../../')
-        }, options);
+    constructor(options = {}) {
+        this.options = options;
 
+        this.init();
 
-        //this.isValid({type: 'emptyEntryOutput', value: options.entryOutput});
-        //this.isValid({type: 'ckeckEntryOutput', value: options.entryOutput});
-
-
+        console.log(this.options);
 
 
         // if (!options.entryOutput) {
@@ -49,54 +49,121 @@ class HandlebarsPlugin {
         //
         // Object.assign(this.options, options);
         //
-        // this.build();
     }
 
-    isValid(type) {
-        switch (type) {
-            case 'emptyEntryOutput':
-                if (!this.options.entryOutput || !this.options.entryOutput.length) {
-                    return log(chalk.red('"entryOutput"을 지정해주세요.'));
-                }
-
-            case 'checkEntryOutput':
-                if (!Array.isArray(this.options.entryOutput)) {
-                    return log(chalk.red('"entryOutput"는 배열로 이루어져 있어야 합니다.'));
-                }
-
-                if (this.options.entryOutput.some(item => !(item.entry && item.output))) {
-                    return log(chalk.red('"entryOutput" 안의  {entry: 경로, output: 경로}" 확인해주세요.'));
-                }
-        }
-    }
-
-    build() {
-        this
-            .buildEntryOutput()
-            .register('helpers')
-            .updateData()
-    }
-
-    buildEntryOutput() {
-        isValid('emptyEntryOutput');
-        isValid('checkEntryOutput');
-
+    init() {
         const options = this.options;
+        const entryOutput = options.entryOutput;
+
+        if (!(entryOutput && entryOutput.length)) {
+            err(chalk.red('init '), '"entryOutput"을 지정해주세요.');
+        }
+
+        if (!Array.isArray(entryOutput)) {
+            err(chalk.red('init '), '"entryOutput"는 배열로 이루어져 있어야 합니다.');
+        }
+
+        if (entryOutput.some(item => !(item.entry && item.output))) {
+            err(chalk.red('init '), '"entryOutput" 안의 {entry: 경로, output: 경로} 확인해주세요.');
+        }
+
+        this
+            .initPath()
+            .initFile()
+            .initEntryOutput()
+            .initData()
+            .register('helpers');
+    }
+
+    initPath() {
+        const folder = {
+            entry: path.resolve(process.cwd(), '../../handlebars'),
+            output: path.resolve(process.cwd(), '../../../'),
+            partials: '_partials',
+            helpers: '_helpers',
+            data: '_data'
+        };
+        const pathes =  this.options['path'];
+
+        if (pathes) {
+            const pathTypes = Object.keys(pathes);
+            const isString = pathTypes.some(pathType => typeof pathes[pathType] !== 'string');
+            const isEmpty = pathTypes.some(pathType => !pathes[pathType].trim());
+
+            if (isString) {
+                err(chalk.red('initPath '), '파일 경로를 확인해주세요.');
+            }
+
+            if (isEmpty) {
+                err(chalk.red('initPath '), '파일 경로의 값이 없습니다.');
+            }
+
+            ['entry', 'output'].forEach(pathType => {
+                if (pathes[pathType]) {
+                    folder[pathType] = pathes[pathType];
+                }
+            });
+
+            ['partials', 'helpers', 'data'].forEach(pathType => {
+                folder[pathType] = path.resolve(folder['entry'], (pathes[pathType] || folder[pathType]));
+            });
+        }
+
+        Object.assign(this.options, {path: folder});
+
+        return this;
+    }
+
+    initFile() {
+        const options = this.options;
+        const pathes = options.path;
+
+        Object.assign(options, {
+            file: {
+                partials: path.resolve(pathes['partials'], '**/*.hbs'),
+                helpers: path.resolve(pathes['helpers'], '**/*.js'),
+                data: path.resolve(pathes['data'], '*.js'),
+            }
+        });
+
+        return this;
+    }
+
+    initEntryOutput() {
+        const options = this.options;
+        const pathEntry = options.path.entry;
+        const pathOutput = options.path.output;
+
         const entryOutput = options.entryOutput.reduce((eachItems, filesPath) => {
-            const pathEntry = options.pathEntry;
             const entryFiles = this.files(path.resolve(pathEntry, filesPath.entry));
 
-            const outputFiles = entryFiles.map(file => {
+            const outputFiles = entryFiles.map((file) => {
                 const entryFileName = path.basename(file.replace(pathEntry, '')).replace(path.extname(file), '');
 
-                return path.resolve(options.pathOutput, filesPath.output.replace('[name]', entryFileName));
+                return path.resolve(pathOutput, filesPath.output.replace('[name]', entryFileName));
             });
 
             eachItems.entries = eachItems.entries.concat(entryFiles);
             eachItems.outputs = eachItems.outputs.concat(outputFiles);
+
+            return eachItems;
         }, {entries: [], outputs: []});
 
-        Object.assign(options, entryOutput);
+        delete options['entryOutput'];
+
+        Object.assign(options.file, entryOutput);
+
+        return this;
+    }
+
+    initData() {
+        const options = this.options;
+        const files = this.files(options.file.data);
+        const data = {};
+
+        files.forEach(file => Object.assign(data, require(file)));
+
+        Object.assign(options, {data});
 
         return this;
     }
@@ -115,12 +182,12 @@ class HandlebarsPlugin {
      * @returns {string}
      */
     getId(type, path) {
-        const id = {
-            helpers: path => this.dashToUpper(path.match(/\/([^/]*).js$/).pop()),
+        const method = {
+            helpers: path => this.toCamelCase(path.replace(`${this.options.path[type]}/`, '').replace(/.js$/, '')),
             partials: path => path.match(/\/([^/]+\/[^/]+)\.[^.]+$/).pop()
         };
 
-        return id[type](path);
+        return method[type](path);
     }
 
     /**
@@ -152,6 +219,9 @@ class HandlebarsPlugin {
     dashToUpper(text) {
         return text.replace(/-(\w)/g, (_, letter) => letter.toUpperCase());
     }
+    toCamelCase(text) {
+        return text.replace(/[-\/](\w)/g, (_, letter) => letter.toUpperCase());
+    }
 
     /**
      * helpers와 partials에 등록
@@ -159,8 +229,15 @@ class HandlebarsPlugin {
      * @param {string} type
      */
     register(type) {
-        this.files(this.options[type])
-            .forEach(path => Handlebars[this.dashToUpper(`register-${type.replace(/s$/, '')}`)](this.getId(type, path), (type == 'partials' ? this.read(path) : require(path))));
+        const files = this.files(this.options.file[type]);
+        const registerType = this.toCamelCase(`register-${type.replace(/s$/, '')}`);
+
+        files.forEach(path => {
+            const id = this.getId(type, path);
+            const source = (type === 'partials' ? this.read(path) : require(path));
+
+            Handlebars[registerType](id, source);
+        });
 
         return this;
     }
@@ -208,6 +285,7 @@ class HandlebarsPlugin {
      * @param {string} output
      */
     compileFile(entry, output) {
+        const pathEntry = this.options.entry;
         const templateContent = this.read(entry);
         const templateContentData = path.resolve(this.root, '_data', path.relative(this.root, entry).replace('.hbs', '.js'));
         const template = Handlebars.compile(templateContent);

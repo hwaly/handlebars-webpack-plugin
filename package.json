@@ -7,7 +7,7 @@
     "webpack",
     "handlebars"
   ],
-  "author": "연병화",
+  "author": "Byeonghwa.Yeon (hwalybell@gamil.com)",
   "repository": {
     "type": "git",
     "url": "https://github.com/hwaly/handlebars-webpack-plugin.git"
