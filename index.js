@@ -54,8 +54,8 @@ class HandlebarsPlugin {
 
     initPath() {
         const folder = {
-            entry: path.resolve(__dirname, '../../handlebars'),
-            output: path.resolve(__dirname, '../../../'),
+            entry: path.resolve(process.cwd(), 'handlebars'),
+            output: process.cwd(),
             partials: '_partials',
             helpers: '_helpers',
             data: '_data'
@@ -80,11 +80,11 @@ class HandlebarsPlugin {
                     folder[pathType] = pathes[pathType];
                 }
             });
-
-            ['partials', 'helpers', 'data'].forEach(pathType => {
-                folder[pathType] = path.resolve(folder['entry'], (pathes[pathType] || folder[pathType]));
-            });
         }
+
+        ['partials', 'helpers', 'data'].forEach(pathType => {
+            folder[pathType] = path.resolve(folder['entry'], ((pathes && pathes[pathType]) || folder[pathType]));
+        });
 
         Object.assign(this.options, {path: folder});
 
@@ -120,7 +120,7 @@ class HandlebarsPlugin {
                 return path.resolve(pathOutput, filesPath.output.replace('[name]', entryFileName));
             });
 
-            eachItems.entries = eachItems.entries.concat(entryFiles);
+            eachItems.entries = eachItems.entries.concat(entryFiles.map(filePath => path.normalize(filePath)));
             eachItems.outputs = eachItems.outputs.concat(outputFiles);
 
             return eachItems;
@@ -190,11 +190,12 @@ class HandlebarsPlugin {
      * @param {string} path
      * @returns {string}
      */
-    getId(type, path) {
+    getId(type, filePath) {
+        const file = path.normalize(this.options.path[type], filePath).replace(/\\/g, '/');
         const method = {
-            helpers: path => this.toCamelCase(path.replace(`${this.options.path[type]}/`, '').replace(/.js$/, '')),
-            partials: path => path.replace(`${this.options.path[type]}/`, '').replace(/.hbs$/, ''),
-            data: path => path.replace(`${this.options.path[type]}/`, '').replace(/.js$/, '')
+            helpers: filePath => this.toCamelCase(file.replace(/.js$/, '')),
+            partials: filePath => file.replace(/.hbs$/, ''),
+            data: filePath => file.replace(/.js$/, '')
         };
 
         return method[type](path);

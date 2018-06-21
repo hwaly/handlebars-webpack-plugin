@@ -5,6 +5,16 @@
 npm i @hwaly/handlebars-webpack -D
 ```
 
+## 폴더구조
+```
+webpack.config.js
+
++ handlebars
+L _partials
+L _helpers
+L _data
+```
+
 ## 사용법
 ```js
 // webpack.config.js
@@ -21,11 +31,11 @@ const module.exports = {
             // 생략 가능
             path: {
                 // handlebars 파일 경로
-                // default: path.resolve(__dirname, '../../handlebars')
+                // default: path.resolve(process.cwd(), 'handlebars')
                 entry: '',
                 
                 // 변환 파일 경로
-                // default: path.resolve(__dirname, '../../../')
+                // default: process.cwd()
                 output: '',
                 
                 // Partials 폴더 설정
