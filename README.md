@@ -6,7 +6,7 @@ npm i @hwaly/handlebars-webpack -D
 ```
 
 ## 사용법
-```
+```js
 // webpack.config.js
 
 const path = require('path');
