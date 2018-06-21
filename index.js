@@ -191,7 +191,7 @@ class HandlebarsPlugin {
      * @returns {string}
      */
     getId(type, filePath) {
-        const file = path.normalize(this.options.path[type], filePath).replace(/\\/g, '/');
+        const file = path.relative(this.options.path[type], filePath).replace(/\\/g, '/');
         const method = {
             helpers: filePath => this.toCamelCase(file.replace(/.js$/, '')),
             partials: filePath => file.replace(/.hbs$/, ''),
