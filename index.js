@@ -23,32 +23,9 @@ const err = (...args) => {
 class HandlebarsPlugin {
     constructor(options = {}) {
         this.options = options;
+        this.fileDependencies = [];
 
         this.init();
-
-        console.log(this.options);
-
-
-        // if (!options.entryOutput) {
-        //     throw log(chalk.red('"entryOutput"을 지정해주세요.'));
-        // }
-        //
-        // this.root = path.resolve(__dirname, options.root);
-        // this.outputRoot = path.resolve(__dirname, options.outputRoot);
-        // this.entries = [];
-        // this.outputs = [];
-        // this.data = {};
-        // this.fileDependencies = [];
-        //
-        // this.options = {
-        //     entryOutput: options.entryOutput,
-        //     data: path.resolve(this.root, '_data/_config.js'),
-        //     partials: path.resolve(this.root, '_partials/**/*.hbs'),
-        //     helpers: path.resolve(this.root, '_helpers/**/*.js')
-        // };
-        //
-        // Object.assign(this.options, options);
-        //
     }
 
     init() {
@@ -160,18 +137,42 @@ class HandlebarsPlugin {
         const options = this.options;
         const files = this.files(options.file.data);
         const data = {};
+        let excludeFile;
+
+        if (!options.data) {
+            options.data = {};
+        }
+
+        if (options.data.exclude) {
+            excludeFile = [].concat(options.data.exclude).map(filePath => path.resolve(options.path.data, filePath));
+
+            excludeFile.forEach(filePath => {
+                if (files.includes(filePath)) {
+                    files.splice(files.indexOf(filePath), 1);
+                }
+            });
+        }
 
         files.forEach(file => Object.assign(data, require(file)));
 
-        Object.assign(options, {data});
+        Object.assign(options.data, {init: data});
 
         return this;
     }
 
-    updateData(filePath) {
-        this.data = Object.assign(this.data, require(filePath ? filePath : this.options.data));
+    updateData(dataId, dataPath) {
+        const data = this.options.data;
+        const resultData = Object.assign({}, data.init);
 
-        return this;
+        if (fs.existsSync(dataPath) && !data[dataId]) {
+            data[dataId] = require(dataPath);
+        }
+
+        if (data[dataId]) {
+            Object.assign(resultData, data[dataId]);
+        }
+
+        return resultData;
     }
 
     /**
@@ -184,7 +185,8 @@ class HandlebarsPlugin {
     getId(type, path) {
         const method = {
             helpers: path => this.toCamelCase(path.replace(`${this.options.path[type]}/`, '').replace(/.js$/, '')),
-            partials: path => path.match(/\/([^/]+\/[^/]+)\.[^.]+$/).pop()
+            partials: path => path.replace(`${this.options.path[type]}/`, '').replace(/.hbs$/, ''),
+            data: path => path.replace(`${this.options.path[type]}/`, '').replace(/.js$/, '')
         };
 
         return method[type](path);
@@ -206,7 +208,7 @@ class HandlebarsPlugin {
      * @param {string} filePath
      */
     read(filePath) {
-        this.fileDependencies.push(filePath);
+        this.fileDependencies.push(path.normalize(filePath));
 
         return fs.readFileSync(filePath, 'utf8');
     }
@@ -248,34 +250,32 @@ class HandlebarsPlugin {
      * @param {compiler} compiler
      */
     apply(compiler) {
-        compiler.plugin('make', (compilation, done) => {
-            console.log('\n');
+        const compile = (compilation, done) => {
             this.register('partials');
             this.compileAllFile(done);
-        });
+        };
 
-        compiler.plugin('emit', (compilation, done) => {
-            this.fileDependencies.forEach((fileDependency) => {
-                const fileDependencyPath = path.normalize(fileDependency);
+        const emitDependencies = (compilation, done) => {
+            if (compilation.fileDependencies.add) {
+                this.fileDependencies.forEach(compilation.fileDependencies.add, compilation.fileDependencies);
+            } else {
+                this.fileDependencies.forEach(fileDependency => {
+                    if (!compilation.fileDependencies.includes(fileDependency)) {
+                        compilation.fileDependencies.push(fileDependency);
+                    }
+                });
+            }
 
-                if (!compilation.fileDependencies.includes(fileDependencyPath)) {
-                    compilation.fileDependencies.push(fileDependencyPath);
-                }
-            });
+            return done();
+        };
 
-            done();
-        });
-    }
-
-    /**
-     * 전체 파일 생성
-     *
-     * @param done
-     */
-    compileAllFile(done) {
-        this.entries.forEach((entry, idx) => this.compileFile(entry, this.outputs[idx]));
-
-        done();
+        if (compiler.hooks) {
+            compiler.hooks.make.tapAsync('HandlebarsRenderPlugin', compile);
+            compiler.hooks.emit.tapAsync('HandlebarsRenderPlugin', emitDependencies);
+        } else {
+            compiler.plugin('make', compile);
+            compiler.plugin('emit', emitDependencies);
+        }
     }
 
     /**
@@ -285,20 +285,31 @@ class HandlebarsPlugin {
      * @param {string} output
      */
     compileFile(entry, output) {
-        const pathEntry = this.options.entry;
+        const options = this.options;
+        const pathes = options.path;
         const templateContent = this.read(entry);
-        const templateContentData = path.resolve(this.root, '_data', path.relative(this.root, entry).replace('.hbs', '.js'));
         const template = Handlebars.compile(templateContent);
-
-        if (fs.existsSync(templateContentData)) {
-            Object.assign(this.data, require(templateContentData));
-        }
-
-        const result = template(this.data);
+        const templateDataPath = path.resolve(pathes.data, path.relative(pathes.entry, entry).replace('.hbs', '.js'));
+        const templateDataId = this.getId('data', templateDataPath);
+        const templateData = this.updateData(templateDataId, templateDataPath);
+        const result = template(templateData);
 
         fs.outputFileSync(output, result, 'utf-8');
 
-        log(chalk.magenta('파일 생성'), chalk.cyan(`'${output.replace(`${this.outputRoot}/`, '')}'`));
+        log(chalk.magenta('파일 생성'), chalk.cyan(`'${output.replace(`${pathes.output}/`, '')}'`));
+    }
+
+    /**
+     * 전체 파일 생성
+     *
+     * @param done
+     */
+    compileAllFile(done) {
+        const file = this.options.file;
+
+        file.entries.forEach((entry, idx) => this.compileFile(entry, file.outputs[idx]));
+
+        done();
     }
 }
 

@@ -1,7 +1,11 @@
 # Handlebars Webpack Plugin
 
+## 설치
+```
 npm i @hwaly/handlebars-webpack -D
+```
 
+## 사용법
 ```
 // webpack.config.js
 
@@ -40,22 +44,24 @@ const module.exports = {
                 data: '',
             },
             
+            // 생략 가능
+            // data 폴더의 js를 기본 데이터로 설정 (서브 폴더 안의 js 제외)
+            // 서브 폴더 안의 js는 각각의 hbs 파일 경로와 이름이 매칭 되어 설정 가능
+            data: {
+                // 초기 데이터 설정에서 제외 파일
+                // String 이나 Array 가능 (ex: 'index.js' || ['index.js', 'main.js'])
+                exclude: ''
+            },
+            
             // 원본과 변환 파일 설정
             // 필수값
+            // entry는 path.entry의 상대 경로 사용
+            // output은 path.output의 상대 경로 사용
+            // ex: {entry: '*.hbs', output: '[name].html'}
             entryOutput: [
-                {entry: '*.hbs', output: '[name].html'},
-                {entry: 'sample/*.hbs', output: 'sample/[name].html'}
+                {entry: '', output: ''},
             ]
-
-            // hooks
-            onBeforeSetup: function (Handlebars) {},
-            onBeforeAddPartials: function (Handlebars, partialsMap) {},
-            onBeforeCompile: function (Handlebars, templateContent) {},
-            onBeforeRender: function (Handlebars, data) {},
-            onBeforeSave: function (Handlebars, resultHtml, filename) {},
-            onDone: function (Handlebars, filename) {}
         })
-        
     ]
 };
 ```
