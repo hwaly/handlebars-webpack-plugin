@@ -21,11 +21,11 @@ const module.exports = {
             // 생략 가능
             path: {
                 // handlebars 파일 경로
-                // default: path.resolve(process.cwd(), '../../handlebars')
+                // default: path.resolve(__dirname, '../../handlebars')
                 entry: '',
                 
                 // 변환 파일 경로
-                // default: path.resolve(process.cwd(), '../../../')
+                // default: path.resolve(__dirname, '../../../')
                 output: '',
                 
                 // Partials 폴더 설정

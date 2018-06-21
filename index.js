@@ -54,8 +54,8 @@ class HandlebarsPlugin {
 
     initPath() {
         const folder = {
-            entry: path.resolve(process.cwd(), '../../handlebars'),
-            output: path.resolve(process.cwd(), '../../../'),
+            entry: path.resolve(__dirname, '../../handlebars'),
+            output: path.resolve(__dirname, '../../../'),
             partials: '_partials',
             helpers: '_helpers',
             data: '_data'
