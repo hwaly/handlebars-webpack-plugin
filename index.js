@@ -160,6 +160,14 @@ class HandlebarsPlugin {
         return this;
     }
 
+
+    /**
+     * hbs와 매칭되는 data 생성
+     *
+     * @param {string} dataId
+     * @param {string} dataPath
+     * @returns {object}
+     */
     updateData(dataId, dataPath) {
         const data = this.options.data;
         const resultData = Object.assign({}, data.init);
