@@ -1,8 +1,12 @@
 .DS_Store
+Thumbs.db
+.vscode
+*.sublime-project
+*.sublime-workspace
+npm-debug.log*
+package-lock.json
 
 .git/
 .idea/
-docs/
-examples/
-support/
+node_modules/
 test/
