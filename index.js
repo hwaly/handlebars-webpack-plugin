@@ -184,7 +184,7 @@ class HandlebarsPlugin {
     }
 
     /**
-     * helpers와 partials에 사용되는 아이디 생성
+     * helpers와 partials, data에 사용되는 아이디 생성
      *
      * @param {string} type
      * @param {string} path
@@ -223,7 +223,7 @@ class HandlebarsPlugin {
     }
 
     /**
-     * 케밥 케이스를 카멜 케이스로 변경
+     * 카멜 케이스로 변경
      *
      * @param {string} text
      */
@@ -315,8 +315,13 @@ class HandlebarsPlugin {
      */
     compileAllFile(done) {
         const file = this.options.file;
+        const outputs = file.outputs;
 
-        file.entries.forEach((entry, idx) => this.compileFile(entry, file.outputs[idx]));
+        file.entries.forEach((entry, idx) => {
+            const output = outputs[idx];
+
+            this.compileFile(entry, output);
+        });
 
         done();
     }
