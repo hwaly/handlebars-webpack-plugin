@@ -2,7 +2,7 @@
 
 ## 설치
 ```
-npm i @hwaly/handlebars-webpack -D
+npm i hwaly-handlebars-webpack-plugin -D
 ```
 
 ## 폴더구조
