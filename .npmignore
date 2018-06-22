@@ -6,7 +6,7 @@ Thumbs.db
 npm-debug.log*
 package-lock.json
 
-.git/
+.git*
 .idea/
 node_modules/
 test/
